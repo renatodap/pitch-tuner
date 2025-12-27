@@ -25,6 +25,9 @@ const DEFAULT_REFERENCE_A4 = 440;
 const MIN_REFERENCE_A4 = 432;
 const MAX_REFERENCE_A4 = 446;
 
+// Number of frames to hold the last pitch when no new pitch detected
+const PITCH_HOLD_FRAMES = 10;
+
 export function usePitchDetection(): [TunerData, TunerActions] {
   const [state, setState] = useState<TunerState>('idle');
   const [error, setError] = useState<AudioError | null>(null);
@@ -37,6 +40,8 @@ export function usePitchDetection(): [TunerData, TunerActions] {
   const audioDataRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const referenceA4Ref = useRef(DEFAULT_REFERENCE_A4);
   const isRunningRef = useRef(false);
+  const lastPitchRef = useRef<PitchResult | null>(null);
+  const holdCounterRef = useRef(0);
 
   // Keep ref in sync with state
   useEffect(() => {
@@ -57,6 +62,8 @@ export function usePitchDetection(): [TunerData, TunerActions] {
     audioRef.current = null;
     detectorRef.current = null;
     audioDataRef.current = null;
+    lastPitchRef.current = null;
+    holdCounterRef.current = 0;
   }, []);
 
   const stop = useCallback(() => {
@@ -88,9 +95,20 @@ export function usePitchDetection(): [TunerData, TunerActions] {
       const result = detectPitch(detector, audioData, audio.audioContext.sampleRate, referenceA4Ref.current);
 
       if (result) {
+        // New pitch detected
+        lastPitchRef.current = result;
+        holdCounterRef.current = PITCH_HOLD_FRAMES;
         setPitch(result);
         setState('active');
+      } else if (holdCounterRef.current > 0) {
+        // No pitch but still holding
+        holdCounterRef.current--;
+        // Keep showing the last pitch
+        setPitch(lastPitchRef.current);
+        setState('active');
       } else {
+        // No pitch and hold expired
+        lastPitchRef.current = null;
         setPitch(null);
         setState('listening');
       }
