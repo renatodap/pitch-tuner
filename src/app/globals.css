@@ -1,0 +1,338 @@
+@import "tailwindcss";
+
+:root {
+  /* Tuner Colors */
+  --color-bg: #0a0a0a;
+  --color-bg-secondary: #111111;
+  --color-text: #fafafa;
+  --color-muted: #525252;
+  --color-border: #262626;
+
+  /* Tuning State Colors */
+  --color-off: #ef4444;
+  --color-close: #eab308;
+  --color-in-tune: #22c55e;
+
+  /* Typography */
+  --font-display: 'Inter', system-ui, -apple-system, sans-serif;
+}
+
+@theme inline {
+  --color-background: var(--color-bg);
+  --color-foreground: var(--color-text);
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+  overflow: hidden;
+  background: var(--color-bg);
+  color: var(--color-text);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Main Container */
+.tuner-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100dvh;
+  padding: 2rem;
+  background: var(--color-bg);
+}
+
+/* Start Button */
+.start-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 3rem 4rem;
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.start-button:hover {
+  border-color: var(--color-muted);
+  background: var(--color-bg-secondary);
+}
+
+.start-button:active {
+  transform: scale(0.98);
+}
+
+.start-text {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+}
+
+.start-subtext {
+  font-size: 0.875rem;
+  color: var(--color-muted);
+  letter-spacing: 0.01em;
+}
+
+/* Error State */
+.error-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  text-align: center;
+}
+
+.error-message {
+  font-size: 1.125rem;
+  color: var(--color-off);
+  letter-spacing: -0.01em;
+}
+
+.retry-button {
+  padding: 0.875rem 2rem;
+  font-size: 1rem;
+  font-weight: 500;
+  color: var(--color-text);
+  background: transparent;
+  border: 1px solid var(--color-border);
+  border-radius: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-button:hover {
+  border-color: var(--color-muted);
+  background: var(--color-bg-secondary);
+}
+
+/* Tuner Display */
+.tuner-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2.5rem;
+  width: 100%;
+  max-width: 24rem;
+}
+
+.tuner-display.locked .note-letter {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    text-shadow: 0 0 40px currentColor;
+  }
+  50% {
+    opacity: 0.9;
+    text-shadow: 0 0 60px currentColor, 0 0 80px currentColor;
+  }
+}
+
+/* Note Section */
+.note-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.note-letter {
+  font-size: clamp(8rem, 30vw, 14rem);
+  font-weight: 200;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  transition: color 0.15s ease, text-shadow 0.3s ease;
+  position: relative;
+}
+
+.octave {
+  font-size: 0.25em;
+  font-weight: 300;
+  vertical-align: super;
+  margin-left: 0.1em;
+  opacity: 0.6;
+}
+
+.frequency {
+  font-size: 1.125rem;
+  font-weight: 400;
+  color: var(--color-muted);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+}
+
+.frequency-unit {
+  font-size: 0.875rem;
+  opacity: 0.7;
+}
+
+/* Cents Meter */
+.cents-meter {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  transition: opacity 0.2s ease;
+}
+
+.meter-track {
+  position: relative;
+  width: 100%;
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 2px;
+  overflow: visible;
+}
+
+.meter-center {
+  position: absolute;
+  left: 50%;
+  top: -4px;
+  width: 2px;
+  height: 12px;
+  background: var(--color-muted);
+  transform: translateX(-50%);
+  border-radius: 1px;
+}
+
+.meter-indicator {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  transition: transform 0.1s ease-out, background-color 0.15s ease;
+  box-shadow: 0 0 12px currentColor;
+}
+
+.meter-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  padding-top: 0.75rem;
+  font-size: 1.25rem;
+  color: var(--color-muted);
+}
+
+.cents-value {
+  font-size: 1rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  transition: color 0.15s ease;
+}
+
+.cents-unit {
+  font-weight: 400;
+  opacity: 0.7;
+}
+
+/* Reference Control */
+.reference-control {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--color-bg-secondary);
+  border: 1px solid var(--color-border);
+  border-radius: 2rem;
+}
+
+.ref-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.25rem;
+  font-weight: 300;
+  color: var(--color-muted);
+  background: transparent;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.ref-button:hover {
+  color: var(--color-text);
+  background: var(--color-border);
+}
+
+.ref-button:active {
+  transform: scale(0.9);
+}
+
+.ref-display {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: var(--color-muted);
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  min-width: 5rem;
+  text-align: center;
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+  .tuner-container {
+    padding: 1rem 2rem;
+  }
+
+  .tuner-display {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 2rem;
+    max-width: none;
+  }
+
+  .note-section {
+    flex: 0 0 auto;
+  }
+
+  .note-letter {
+    font-size: clamp(4rem, 15vh, 8rem);
+  }
+
+  .cents-meter {
+    flex: 1;
+    max-width: 16rem;
+  }
+
+  .reference-control {
+    position: absolute;
+    bottom: 1rem;
+    right: 1rem;
+  }
+}
+
+/* Safe area insets for notched devices */
+@supports (padding-top: env(safe-area-inset-top)) {
+  .tuner-container {
+    padding-top: max(2rem, env(safe-area-inset-top));
+    padding-bottom: max(2rem, env(safe-area-inset-bottom));
+    padding-left: max(2rem, env(safe-area-inset-left));
+    padding-right: max(2rem, env(safe-area-inset-right));
+  }
+}

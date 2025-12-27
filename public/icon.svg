@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#0a0a0a"/>
+  <g fill="none" stroke="#fafafa" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Tuning fork prongs -->
+    <path d="M 200 100 L 200 220 Q 200 260 240 260"/>
+    <path d="M 312 100 L 312 220 Q 312 260 272 260"/>
+    <!-- Handle -->
+    <path d="M 256 260 L 256 412"/>
+    <!-- Base -->
+    <circle cx="256" cy="412" r="16" fill="#fafafa"/>
+  </g>
+</svg>
