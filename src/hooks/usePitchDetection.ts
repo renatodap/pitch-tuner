@@ -1,9 +1,8 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { PitchDetector } from 'pitchy';
 import { setupAudio, cleanupAudio, isAudioSupported, AudioSetupResult, AudioError } from '@/lib/audio';
-import { createPitchDetector, detectPitch, PitchResult } from '@/lib/pitch';
+import { detectPitch, PitchResult } from '@/lib/pitch';
 
 export type TunerState = 'idle' | 'listening' | 'active' | 'error';
 
@@ -25,8 +24,8 @@ const DEFAULT_REFERENCE_A4 = 440;
 const MIN_REFERENCE_A4 = 432;
 const MAX_REFERENCE_A4 = 446;
 
-// Number of frames to hold the last pitch when no new pitch detected
-const PITCH_HOLD_FRAMES = 10;
+// Number of frames to hold the last pitch when no new pitch detected (~250ms at 60fps)
+const PITCH_HOLD_FRAMES = 15;
 
 export function usePitchDetection(): [TunerData, TunerActions] {
   const [state, setState] = useState<TunerState>('idle');
@@ -35,7 +34,6 @@ export function usePitchDetection(): [TunerData, TunerActions] {
   const [referenceA4, setReferenceA4State] = useState(DEFAULT_REFERENCE_A4);
 
   const audioRef = useRef<AudioSetupResult | null>(null);
-  const detectorRef = useRef<PitchDetector<Float32Array<ArrayBuffer>> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioDataRef = useRef<Float32Array<ArrayBuffer> | null>(null);
   const referenceA4Ref = useRef(DEFAULT_REFERENCE_A4);
@@ -60,7 +58,6 @@ export function usePitchDetection(): [TunerData, TunerActions] {
 
     cleanupAudio(audioRef.current);
     audioRef.current = null;
-    detectorRef.current = null;
     audioDataRef.current = null;
     lastPitchRef.current = null;
     holdCounterRef.current = 0;
@@ -77,10 +74,9 @@ export function usePitchDetection(): [TunerData, TunerActions] {
     if (!isRunningRef.current) return;
 
     const audio = audioRef.current;
-    const detector = detectorRef.current;
     const audioData = audioDataRef.current;
 
-    if (!audio || !detector || !audioData) {
+    if (!audio || !audioData) {
       animationFrameRef.current = requestAnimationFrame(updatePitch);
       return;
     }
@@ -91,8 +87,11 @@ export function usePitchDetection(): [TunerData, TunerActions] {
         audio.audioContext.resume();
       }
 
+      // Get time-domain data for autocorrelation
       audio.analyser.getFloatTimeDomainData(audioData);
-      const result = detectPitch(detector, audioData, audio.audioContext.sampleRate, referenceA4Ref.current);
+
+      // Detect pitch using ACF2+ algorithm
+      const result = detectPitch(audioData, audio.audioContext.sampleRate, referenceA4Ref.current);
 
       if (result) {
         // New pitch detected
@@ -103,7 +102,6 @@ export function usePitchDetection(): [TunerData, TunerActions] {
       } else if (holdCounterRef.current > 0) {
         // No pitch but still holding
         holdCounterRef.current--;
-        // Keep showing the last pitch
         setPitch(lastPitchRef.current);
         setState('active');
       } else {
@@ -139,8 +137,7 @@ export function usePitchDetection(): [TunerData, TunerActions] {
 
       audioRef.current = audio;
 
-      // Create detector and audio buffer
-      detectorRef.current = createPitchDetector(audio.audioContext.sampleRate);
+      // Create audio buffer matching the analyser's fftSize
       audioDataRef.current = new Float32Array(audio.analyser.fftSize);
 
       // Start the detection loop

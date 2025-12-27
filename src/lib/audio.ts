@@ -15,9 +15,10 @@ export interface AudioSetupResult {
   stream: MediaStream;
 }
 
-// fftSize of 2048 provides good frequency resolution for pitch detection
-// at 44.1kHz sample rate, this gives ~21.5Hz bin resolution
-const FFT_SIZE = 2048;
+// fftSize of 4096 needed for low frequency detection (low E ~82Hz)
+// Larger buffer = more cycles of low frequency waves = better detection
+// At 48kHz sample rate, this gives ~85ms of audio data
+const FFT_SIZE = 4096;
 
 /**
  * Checks if the browser supports the required audio APIs.
