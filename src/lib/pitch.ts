@@ -7,8 +7,8 @@ import { PitchDetector } from 'pitchy';
 import { frequencyToNote, NoteInfo } from './notes';
 
 // Only accept pitches with clarity above this threshold
-// 0.9 filters out most ambient noise while catching clear notes
-const CLARITY_THRESHOLD = 0.9;
+// 0.8 balances noise filtering with responsiveness
+const CLARITY_THRESHOLD = 0.8;
 
 // Minimum frequency to consider (below E1 on bass guitar)
 const MIN_PITCH_HZ = 30;

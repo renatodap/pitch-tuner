@@ -35,10 +35,19 @@ export function usePitchDetection(): [TunerData, TunerActions] {
   const detectorRef = useRef<PitchDetector<Float32Array<ArrayBuffer>> | null>(null);
   const animationFrameRef = useRef<number | null>(null);
   const audioDataRef = useRef<Float32Array<ArrayBuffer> | null>(null);
+  const referenceA4Ref = useRef(DEFAULT_REFERENCE_A4);
+  const isRunningRef = useRef(false);
+
+  // Keep ref in sync with state
+  useEffect(() => {
+    referenceA4Ref.current = referenceA4;
+  }, [referenceA4]);
 
   const isSupported = typeof window !== 'undefined' && isAudioSupported();
 
-  const stop = useCallback(() => {
+  const stopInternal = useCallback(() => {
+    isRunningRef.current = false;
+
     if (animationFrameRef.current !== null) {
       cancelAnimationFrame(animationFrameRef.current);
       animationFrameRef.current = null;
@@ -48,24 +57,35 @@ export function usePitchDetection(): [TunerData, TunerActions] {
     audioRef.current = null;
     detectorRef.current = null;
     audioDataRef.current = null;
+  }, []);
 
+  const stop = useCallback(() => {
+    stopInternal();
     setPitch(null);
     setState('idle');
     setError(null);
-  }, []);
+  }, [stopInternal]);
 
   const updatePitch = useCallback(() => {
+    if (!isRunningRef.current) return;
+
     const audio = audioRef.current;
     const detector = detectorRef.current;
     const audioData = audioDataRef.current;
 
     if (!audio || !detector || !audioData) {
+      animationFrameRef.current = requestAnimationFrame(updatePitch);
       return;
     }
 
     try {
+      // Ensure AudioContext is running
+      if (audio.audioContext.state === 'suspended') {
+        audio.audioContext.resume();
+      }
+
       audio.analyser.getFloatTimeDomainData(audioData);
-      const result = detectPitch(detector, audioData, audio.audioContext.sampleRate, referenceA4);
+      const result = detectPitch(detector, audioData, audio.audioContext.sampleRate, referenceA4Ref.current);
 
       if (result) {
         setPitch(result);
@@ -76,22 +96,29 @@ export function usePitchDetection(): [TunerData, TunerActions] {
       }
     } catch (err) {
       console.error('Pitch detection error:', err);
-      // Don't stop on detection errors, just skip this frame
     }
 
     animationFrameRef.current = requestAnimationFrame(updatePitch);
-  }, [referenceA4]);
+  }, []);
 
   const start = useCallback(async () => {
-    if (audioRef.current) {
-      return; // Already running
+    // If already running, stop first
+    if (isRunningRef.current) {
+      stopInternal();
     }
 
     setError(null);
     setState('listening');
+    isRunningRef.current = true;
 
     try {
       const audio = await setupAudio();
+
+      // Resume AudioContext if suspended (required after user gesture)
+      if (audio.audioContext.state === 'suspended') {
+        await audio.audioContext.resume();
+      }
+
       audioRef.current = audio;
 
       // Create detector and audio buffer
@@ -101,13 +128,13 @@ export function usePitchDetection(): [TunerData, TunerActions] {
       // Start the detection loop
       animationFrameRef.current = requestAnimationFrame(updatePitch);
     } catch (err) {
+      isRunningRef.current = false;
       const audioError = (err as { type: AudioError }).type || 'unknown';
       setError(audioError);
       setState('error');
-      cleanupAudio(audioRef.current);
-      audioRef.current = null;
+      stopInternal();
     }
-  }, [updatePitch]);
+  }, [stopInternal, updatePitch]);
 
   const setReferenceA4 = useCallback((hz: number) => {
     const clamped = Math.max(MIN_REFERENCE_A4, Math.min(MAX_REFERENCE_A4, hz));
@@ -117,20 +144,13 @@ export function usePitchDetection(): [TunerData, TunerActions] {
   // Cleanup on unmount
   useEffect(() => {
     return () => {
+      isRunningRef.current = false;
       if (animationFrameRef.current !== null) {
         cancelAnimationFrame(animationFrameRef.current);
       }
       cleanupAudio(audioRef.current);
     };
   }, []);
-
-  // Restart detection loop when reference changes (to use new reference)
-  useEffect(() => {
-    if (audioRef.current && animationFrameRef.current !== null) {
-      cancelAnimationFrame(animationFrameRef.current);
-      animationFrameRef.current = requestAnimationFrame(updatePitch);
-    }
-  }, [updatePitch]);
 
   return [
     { state, error, pitch, referenceA4, isSupported },

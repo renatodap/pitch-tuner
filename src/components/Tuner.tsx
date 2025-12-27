@@ -29,9 +29,10 @@ function getCentsColor(cents: number): string {
 export default function Tuner() {
   const [data, actions] = usePitchDetection();
   const { state, error, pitch, referenceA4, isSupported } = data;
-  const { start, setReferenceA4 } = actions;
+  const { start, stop, setReferenceA4 } = actions;
 
   const isLocked = pitch && Math.abs(pitch.noteInfo.cents) <= CENTS_LOCKED_THRESHOLD;
+  const isListening = state === 'listening' || state === 'active';
 
   if (!isSupported) {
     return (
@@ -79,7 +80,7 @@ export default function Tuner() {
         {/* Note Display */}
         <div className="note-section">
           <div
-            className="note-letter"
+            className={`note-letter ${!pitch ? 'listening' : ''}`}
             style={{ color: pitch ? getCentsColor(centsDisplay) : 'var(--color-muted)' }}
           >
             {noteDisplay}
@@ -88,14 +89,18 @@ export default function Tuner() {
             )}
           </div>
           <div className="frequency">
-            {frequencyDisplay} <span className="frequency-unit">Hz</span>
+            {pitch ? (
+              <>{frequencyDisplay} <span className="frequency-unit">Hz</span></>
+            ) : (
+              <span className="listening-text">Listening...</span>
+            )}
           </div>
         </div>
 
         {/* Cents Meter */}
         <div
           className="cents-meter"
-          style={{ opacity: pitch ? 1 : 0 }}
+          style={{ opacity: pitch ? 1 : 0.3 }}
         >
           <div className="meter-track">
             <div className="meter-center" />
@@ -103,7 +108,7 @@ export default function Tuner() {
               className="meter-indicator"
               style={{
                 transform: `translateX(${centsPosition * 2}%)`,
-                backgroundColor: getCentsColor(centsDisplay),
+                backgroundColor: pitch ? getCentsColor(centsDisplay) : 'var(--color-muted)',
               }}
             />
             <div className="meter-labels">
@@ -113,9 +118,13 @@ export default function Tuner() {
           </div>
           <div
             className="cents-value"
-            style={{ color: getCentsColor(centsDisplay) }}
+            style={{ color: pitch ? getCentsColor(centsDisplay) : 'var(--color-muted)' }}
           >
-            {centsDisplay > 0 ? '+' : ''}{centsDisplay} <span className="cents-unit">cents</span>
+            {pitch ? (
+              <>{centsDisplay > 0 ? '+' : ''}{centsDisplay} <span className="cents-unit">cents</span></>
+            ) : (
+              <span className="cents-unit">Play a note</span>
+            )}
           </div>
         </div>
 
@@ -139,6 +148,13 @@ export default function Tuner() {
             +
           </button>
         </div>
+
+        {/* Stop button */}
+        {isListening && (
+          <button onClick={stop} className="stop-button" aria-label="Stop tuner">
+            Stop
+          </button>
+        )}
       </div>
     </div>
   );
